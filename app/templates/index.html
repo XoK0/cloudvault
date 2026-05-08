@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>CloudVault</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,7 +13,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: auto;
             background: white;
             padding: 30px;
@@ -31,7 +32,7 @@
             margin-bottom: 24px;
         }
 
-        form {
+        form.upload-form {
             margin-bottom: 30px;
             padding: 16px;
             background: #f8f8f8;
@@ -42,7 +43,8 @@
             margin-right: 12px;
         }
 
-        button, .button {
+        button,
+        .button {
             background: #2b7cff;
             color: white;
             border: none;
@@ -50,18 +52,49 @@
             border-radius: 6px;
             text-decoration: none;
             cursor: pointer;
+            font-size: 14px;
         }
 
-        button:hover, .button:hover {
+        button:hover,
+        .button:hover {
             background: #1d5fcc;
+        }
+
+        .danger {
+            background: #d93025;
+        }
+
+        .danger:hover {
+            background: #a91f17;
+        }
+
+        .trash-button {
+            background: #d93025;
+            padding: 7px 10px;
+        }
+
+        .trash-button:hover {
+            background: #a91f17;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .bulk-actions {
+            margin-bottom: 14px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 28px;
         }
 
-        th, td {
+        th,
+        td {
             text-align: left;
             padding: 12px;
             border-bottom: 1px solid #ddd;
@@ -80,20 +113,58 @@
             color: #666;
             font-size: 0.9em;
         }
+
+        .delete-form {
+            display: inline;
+        }
+
+        .checkbox-column {
+            width: 40px;
+        }
+
+        .action-column {
+            width: 220px;
+        }
     </style>
+
+    <script>
+        function toggleAll(source) {
+            const checkboxes = document.querySelectorAll('input[name="selected_files"]');
+
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = source.checked;
+            });
+        }
+
+        function confirmSingleDelete() {
+            return confirm("¿Seguro que deseas borrar este archivo de S3?");
+        }
+
+        function confirmBulkDelete() {
+            const selected = document.querySelectorAll('input[name="selected_files"]:checked');
+
+            if (selected.length === 0) {
+                alert("Selecciona al menos un archivo.");
+                return false;
+            }
+
+            return confirm("¿Seguro que deseas borrar los archivos seleccionados?");
+        }
+    </script>
 </head>
+
 <body>
 <div class="container">
     <h1>CloudVault</h1>
 
     <div class="status">
-        Sistema de respaldo usando Amazon S3.  
+        Sistema de respaldo usando Amazon S3.
         Los archivos se almacenan en el prefijo <strong>backups/</strong>.
     </div>
 
     <h2>Subir archivo manualmente</h2>
 
-    <form action="/upload" method="post" enctype="multipart/form-data">
+    <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data">
         <input type="file" name="file" required>
         <button type="submit">Subir a S3</button>
     </form>
@@ -101,30 +172,60 @@
     <h2>Archivos respaldados</h2>
 
     {% if files %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Archivo</th>
-                    <th>Tamaño</th>
-                    <th>Última modificación</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for file in files %}
-                <tr>
-                    <td>{{ file.name }}</td>
-                    <td>{{ file.size }} bytes</td>
-                    <td class="small">{{ file.last_modified }}</td>
-                    <td>
-                        <a class="button" href="{{ url_for('download', key=file.key) }}">Descargar</a>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+
+        <form action="/delete-selected" method="post" onsubmit="return confirmBulkDelete();">
+            <div class="bulk-actions">
+                <button class="danger" type="submit">🗑️ Borrar seleccionados</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th class="checkbox-column">
+                            <input type="checkbox" onclick="toggleAll(this)">
+                        </th>
+                        <th>Archivo</th>
+                        <th>Tamaño</th>
+                        <th>Última modificación</th>
+                        <th class="action-column">Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for file in files %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="selected_files" value="{{ file.key }}">
+                        </td>
+
+                        <td>{{ file.name }}</td>
+
+                        <td>{{ file.size }} bytes</td>
+
+                        <td class="small">{{ file.last_modified }}</td>
+
+                        <td>
+                            <div class="actions">
+                                <a class="button" href="{{ url_for('download', key=file.key) }}">
+                                    Descargar
+                                </a>
+
+                                <form class="delete-form" action="/delete" method="post" onsubmit="return confirmSingleDelete();">
+                                    <input type="hidden" name="key" value="{{ file.key }}">
+                                    <button class="trash-button" type="submit">🗑️</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </form>
+
     {% else %}
+
         <p class="empty">No hay archivos respaldados todavía.</p>
+
     {% endif %}
 </div>
 </body>

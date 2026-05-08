@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>CloudVault</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .status {
+            padding: 12px;
+            background: #eef6ff;
+            border-left: 4px solid #2b7cff;
+            margin-bottom: 24px;
+        }
+
+        form {
+            margin-bottom: 30px;
+            padding: 16px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+
+        input[type="file"] {
+            margin-right: 12px;
+        }
+
+        button, .button {
+            background: #2b7cff;
+            color: white;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        button:hover, .button:hover {
+            background: #1d5fcc;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f1f3f5;
+        }
+
+        .empty {
+            color: #666;
+            font-style: italic;
+        }
+
+        .small {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>CloudVault</h1>
+
+    <div class="status">
+        Sistema de respaldo usando Amazon S3.  
+        Los archivos se almacenan en el prefijo <strong>backups/</strong>.
+    </div>
+
+    <h2>Subir archivo manualmente</h2>
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Subir a S3</button>
+    </form>
+
+    <h2>Archivos respaldados</h2>
+
+    {% if files %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Archivo</th>
+                    <th>Tamaño</th>
+                    <th>Última modificación</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for file in files %}
+                <tr>
+                    <td>{{ file.name }}</td>
+                    <td>{{ file.size }} bytes</td>
+                    <td class="small">{{ file.last_modified }}</td>
+                    <td>
+                        <a class="button" href="{{ url_for('download', key=file.key) }}">Descargar</a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="empty">No hay archivos respaldados todavía.</p>
+    {% endif %}
+</div>
+</body>
+</html>
